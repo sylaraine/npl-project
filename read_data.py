@@ -9,6 +9,8 @@ Created on Wed Jul 15 15:43:51 2020
 import pandas as pd
 import nltk
 from nltk.corpus import stopwords
+from nltk.stem import WordNetLemmatizer
+import re
 
 # =============================================================================
 # Encoding problem: export csv file in utf-8 format
@@ -35,10 +37,26 @@ news_senti_data['tokens'] = news_senti_data.apply(tokenize_headline,axis=1)
 
 #print(news_senti_data['tokens'].head())
 
+def lemmatize_words(row):
+    tags = nltk.pos_tag(row['tokens'])
+    lemmatizer = WordNetLemmatizer()
+    lemmatized_words = []
+
+    for w,pos in tags:
+        if re.match('VB',pos):
+            lemmatized_words.append(lemmatizer.lemmatize(w,pos = 'v'))
+        else:
+            lemmatized_words.append(lemmatizer.lemmatize(w))
+    return lemmatized_words
+
+news_senti_data['lemmatized_words'] = news_senti_data.apply(lemmatize_words,axis=1)
+
+#print(news_senti_data['lemmatized_words'].head())
+
 stop_words = set(stopwords.words('english'))
 
 def remove_stopwords(row):
-    words = row['tokens']
+    words = row['lemmatized_words']
     meaningful_words = [w for w in words if w not in stop_words]
     return meaningful_words
 
@@ -46,4 +64,5 @@ news_senti_data['meaningful_words'] = news_senti_data.apply(remove_stopwords,axi
 
 #print(news_senti_data['meaningful_words'].head())
 
-# Jul 15 Github
+data_processed = news_senti_data[['meaningful_words','senti']]
+data_processed.to_pickle('data_processed.pkl')
